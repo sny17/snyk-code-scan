@@ -18,10 +18,20 @@ pipeline {
             }
         }
 
+        stage('Install Snyk Globally') {
+            steps {
+                sh 'sudo npm install -g snyk'
+            }
+        }
+
+        stage('Authenticate Snyk') {
+            steps {
+                sh 'snyk auth $SNYK_TOKEN'
+            }
+        }
+
         stage('Run Snyk Security Scan') {
             steps {
-                sh 'npm install -g snyk'
-                sh 'snyk auth $SNYK_API_TOKEN'
                 sh 'snyk test --all-projects'
             }
         }
@@ -33,5 +43,16 @@ pipeline {
             }
         }
     }
-}
 
+    post {
+        always {
+            echo 'Pipeline execution completed!'
+        }
+        success {
+            echo 'Security scan passed with no critical issues.'
+        }
+        failure {
+            echo 'Security vulnerabilities detected! Check the Snyk report for details.'
+        }
+    }
+}
