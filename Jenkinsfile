@@ -29,7 +29,7 @@ pipeline {
                 script {
                     echo "Authenticating with Snyk..."
                     withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
+                        sh './node_modules/.bin/snyk config set api $SNYK_TOKEN'
                     }
                 }
             }
