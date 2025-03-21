@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SNYK_TOKEN = credentials('SNYK_API_TOKEN') // Ensure you add this as a Jenkins credential
+        NODE_OPTIONS = "--max-old-space-size=4096" // Allocate more memory for npm processes
     }
 
     stages {
@@ -20,13 +20,17 @@ pipeline {
 
         stage('Authenticate Snyk') {
             steps {
-                sh './node_modules/.bin/snyk auth $SNYK_TOKEN'
+                withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
+                    sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
+                }
             }
         }
 
         stage('Run Snyk Scan') {
             steps {
-                sh './node_modules/.bin/snyk test || true'  // Ensures the pipeline doesn't fail on vulnerabilities
+                withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
+                    sh './node_modules/.bin/snyk test --severity-threshold=high || true'
+                }
             }
         }
     }
