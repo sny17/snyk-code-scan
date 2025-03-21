@@ -8,28 +8,43 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                script {
+                    echo "Installing dependencies..."
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Install Snyk Locally') {
             steps {
-                sh 'npm install snyk --save-dev'
+                script {
+                    echo "Installing Snyk CLI..."
+                    sh 'npm install snyk --save-dev'
+                }
             }
         }
 
         stage('Authenticate Snyk') {
             steps {
-                withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
+                script {
+                    echo "Authenticating with Snyk..."
+                    withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
+                        sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
+                    }
                 }
             }
         }
 
         stage('Run Snyk Scan') {
             steps {
-                withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                    sh './node_modules/.bin/snyk test --severity-threshold=high || true'
+                script {
+                    echo "Running Snyk security scan..."
+                    withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
+                        sh '''
+                            set -e  # Fail pipeline on errors
+                            ./node_modules/.bin/snyk test --severity-threshold=high || true
+                        '''
+                    }
                 }
             }
         }
@@ -37,7 +52,10 @@ pipeline {
 
     post {
         always {
-            echo 'Build completed'
+            echo 'Build process completed.'
+        }
+        success {
+            echo 'Build succeeded!'
         }
         failure {
             echo 'Build failed! Check logs for details.'
