@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        NODE_OPTIONS = "--max-old-space-size=4096" // Allocate more memory for npm
+        SNYK_HTTP_TIMEOUT = "600000"  // Increases timeout for slow networks
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/sny17/snyk-code-scan.git'
+                git 'https://github.com/sny17/snyk-code-scan.git'
             }
         }
 
@@ -33,9 +33,9 @@ pipeline {
         stage('Authenticate Snyk') {
             steps {
                 script {
-                    echo 'Authenticating with Snyk...'
-                    withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
+                    withCredentials([string(credentialsId: 'snyk_token', variable: 'SNYK_TOKEN')]) {
+                        echo 'Authenticating with Snyk...'
+                        sh './node_modules/.bin/snyk auth ${SNYK_TOKEN}'
                     }
                 }
             }
@@ -44,18 +44,16 @@ pipeline {
         stage('Run Snyk Scan') {
             steps {
                 script {
-                    echo 'Running Snyk scan...'
-                    withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh './node_modules/.bin/snyk test --severity-threshold=high || true'
-                    }
+                    echo 'Running Snyk security scan...'
+                    sh './node_modules/.bin/snyk test --all-projects'
                 }
             }
         }
     }
 
     post {
-        always {
-            echo 'Build completed'
+        success {
+            echo 'Build completed successfully!'
         }
         failure {
             echo 'Build failed! Check logs for details.'
