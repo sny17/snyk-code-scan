@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    environment {
-        SNYK_TOKEN = credentials('snyk-api-token')  // Jenkins secret credential
-    }
     stages {
         stage('Checkout Code') {
             steps {
@@ -11,28 +8,19 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                sh '''
-                if ! command -v npm &> /dev/null; then
-                    echo "Installing Node.js and npm..."
-                    sudo apt update && sudo apt install -y nodejs npm
-                fi
-                npm install
-                '''
+                sh 'npm install'
             }
         }
         stage('Install Snyk Locally') {
             steps {
-                sh '''
-                if ! command -v snyk &> /dev/null; then
-                    echo "Installing Snyk..."
-                    npm install -g snyk
-                fi
-                '''
+                sh 'npm install -g snyk'
             }
         }
         stage('Authenticate Snyk') {
             steps {
-                sh 'snyk auth $SNYK_TOKEN'
+                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
+                    sh 'snyk auth $SNYK_TOKEN'
+                }
             }
         }
         stage('Run Snyk Scan') {
