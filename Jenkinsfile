@@ -2,14 +2,20 @@ pipeline {
     agent any
 
     environment {
-        NODE_OPTIONS = "--max-old-space-size=4096" // Allocate more memory for npm processes
+        NODE_OPTIONS = "--max-old-space-size=4096" // Allocate more memory for npm
     }
 
     stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/sny17/snyk-code-scan.git'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 script {
-                    echo "Installing dependencies..."
+                    echo 'Installing dependencies...'
                     sh 'npm install'
                 }
             }
@@ -18,7 +24,7 @@ pipeline {
         stage('Install Snyk Locally') {
             steps {
                 script {
-                    echo "Installing Snyk CLI..."
+                    echo 'Installing Snyk CLI...'
                     sh 'npm install snyk --save-dev'
                 }
             }
@@ -27,9 +33,9 @@ pipeline {
         stage('Authenticate Snyk') {
             steps {
                 script {
-                    echo "Authenticating with Snyk..."
+                    echo 'Authenticating with Snyk...'
                     withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh './node_modules/.bin/snyk config set api $SNYK_TOKEN'
+                        sh 'echo $SNYK_TOKEN | ./node_modules/.bin/snyk auth'
                     }
                 }
             }
@@ -38,12 +44,9 @@ pipeline {
         stage('Run Snyk Scan') {
             steps {
                 script {
-                    echo "Running Snyk security scan..."
+                    echo 'Running Snyk scan...'
                     withCredentials([string(credentialsId: 'SNYK_API_TOKEN', variable: 'SNYK_TOKEN')]) {
-                        sh '''
-                            set -e  # Fail pipeline on errors
-                            ./node_modules/.bin/snyk test --severity-threshold=high || true
-                        '''
+                        sh './node_modules/.bin/snyk test --severity-threshold=high || true'
                     }
                 }
             }
@@ -52,10 +55,7 @@ pipeline {
 
     post {
         always {
-            echo 'Build process completed.'
-        }
-        success {
-            echo 'Build succeeded!'
+            echo 'Build completed'
         }
         failure {
             echo 'Build failed! Check logs for details.'
