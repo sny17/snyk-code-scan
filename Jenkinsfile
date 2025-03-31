@@ -7,7 +7,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', 
-                    credentialsId: 'SNYK_TOKEN', // If authentication is needed
+                    credentialsId: 'sny17', // If authentication is needed
                     url: 'https://github.com/sny17/snyk-code-scan.git'
             }
         }
