@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        SNYK_TOKEN = credentials('snyk-api-token')  // Ensure this credential is set in Jenkins
+    }
     stages {
         stage('Checkout Code') {
             steps {
@@ -8,24 +11,25 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm install' // Adjust for your project's package manager (e.g., pip, maven, etc.)
             }
         }
         stage('Install Snyk Locally') {
             steps {
-                sh 'npm install -g snyk'
+                sh 'mkdir -p ~/.npm-global'  // Create local NPM directory
+                sh 'npm config set prefix ~/.npm-global' // Set local NPM install directory
+                sh 'export PATH=$HOME/.npm-global/bin:$PATH' // Add npm-global to PATH
+                sh 'npm install snyk --prefix ~/.npm-global' // Install Snyk locally
             }
         }
         stage('Authenticate Snyk') {
             steps {
-                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
-                    sh 'snyk auth $SNYK_TOKEN'
-                }
+                sh 'export PATH=$HOME/.npm-global/bin:$PATH && snyk auth $SNYK_TOKEN'
             }
         }
         stage('Run Snyk Scan') {
             steps {
-                sh 'snyk test --json > snyk-report.json || echo "Snyk scan completed with warnings"'
+                sh 'export PATH=$HOME/.npm-global/bin:$PATH && snyk test || true'  // Avoid breaking the build due to vulnerabilities
             }
         }
     }
